@@ -15,7 +15,7 @@
      crossorigin=""></script>
 
     <style>
-        #map { height: 400px; }
+        #map { height: 800px; }
         .popup-image {
             max-width: 200px;
             height: auto;
@@ -79,7 +79,13 @@ function initMap(mapDataUrl){
               
                 //Marker and Popup
                 const img = `<img src='${pin.img}' class="popup-image">`;
-                marker.bindPopup(`${img}<br><b> ${pin.title} </b><br> ${pin.description}<br> ${pin.locationType}`);
+                marker.bindPopup(`
+                    <b>${pin.title}</b><br> 
+                    ${pin.description}<br><br>
+                    <i>${pin.comment}</i><br>
+
+                    <h1>${pin.rating}<h1><br>
+                `);
                 console.log(`${pin.name} Loaded ` +Date());
                 
                 markerGroups[type].addLayer(marker);
