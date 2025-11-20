@@ -50,6 +50,14 @@ function initMap(mapDataUrl){
 
     const markerGroups ={};
 
+    // Custom Icon
+    const customIcon = L.icon({
+        iconUrl:'assets/toilet-bowl.png',
+        iconSize: [38,38],
+        iconAnchor: [19,38],
+        popupAnchor: [0,-38]    
+    });
+
     fetch(mapDataUrl)
         .then(response => response.json())
         .then(data => {
@@ -61,14 +69,22 @@ function initMap(mapDataUrl){
                     markerGroups[type] = L.layerGroup();
                 }
 
+                // Custom Marker
+                const marker = L.marker(
+                    [pin.lat,pin.lng],
+                    {
+                        icon:customIcon
+                    }
+                ).addTo(map);
+              
                 //Marker and Popup
-                const marker = L.marker([pin.lat,pin.lng]).addTo(map);
                 const img = `<img src='${pin.img}' class="popup-image">`;
                 marker.bindPopup(`${img}<br><b> ${pin.title} </b><br> ${pin.description}<br> ${pin.locationType}`);
                 console.log(`${pin.name} Loaded ` +Date());
-
+                
                 markerGroups[type].addLayer(marker);
             });
+
             //Add all groups to map initially
             Object.values(markerGroups).forEach(group => group.addTo(map));
 
@@ -87,6 +103,7 @@ function initMap(mapDataUrl){
             
             //Add all elements into the map
             L.control.layers(baseMaps,overlayMaps,{collapsed:false}).addTo(map);
+
         })
         .catch(err => console.error('Error loading JSON', err));
 }
