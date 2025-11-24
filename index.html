@@ -43,28 +43,27 @@
      
 </body>
 <script>
+let map; // global map
+const markerMap = {}; // global marker map
 
-function initMap(mapDataUrl){
-    const map = L.map('map').setView([8.3603,124.8684],17);
+// Initialize Leaflet map
+function initMap(mapDataUrl) {
+    map = L.map('map').setView([8.3603, 124.8684], 17);
 
-    //OpenStreetMapLayer
-    const openStreetMap = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
-        maxZoom:19,
-        attribution:'&copy; OpenStreetMap contributors'
-    });
+    // Base layers
+    const openStreetMap = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-    //Satellite
     const satellite = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        {attribution:'Tiles (c) Esri - Source: Esri, Maxar, Earthstar Geographics, GIS User Community'}
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 
+        { attribution:'Tiles (c) Esri - Source: Esri, Maxar, Earthstar Geographics, GIS User Community' }
     );
 
-    openStreetMap.addTo(map);
-    console.log("Base map tile layer loaded" + Date());
+    const markerGroups = {};
 
-    const markerGroups ={};
-
-    // Custom Icon
+    // Custom icon
     const customIcon = L.icon({
         iconUrl:'assets/toilet-bowl.png',
         iconSize: [38,38],
@@ -75,96 +74,91 @@ function initMap(mapDataUrl){
     fetch(mapDataUrl)
         .then(response => response.json())
         .then(data => {
-            data.forEach( pin => {
+            data.forEach(pin => {
                 const type = pin.locationType || "Other";
 
-                //Create Marker Group
                 if(!markerGroups[type]){
                     markerGroups[type] = L.layerGroup();
                 }
 
-                // Custom Marker
-                const marker = L.marker(
-                    [pin.lat,pin.lng],
-                    {
-                        icon:customIcon
-                    }
-                ).addTo(map);
-              
-                //Marker and Popup
-                const img = `<img src='${pin.img}' class="popup-image">`;
-                marker.bindPopup(`
-                    <b>${pin.title}</b><br> 
-                    ${pin.description}<br><br>
-                    <i>${pin.comment}</i><br>
+                const marker = L.marker([pin.lat, pin.lng], { icon: customIcon })
+                    .bindPopup(`
+                        <img src="${pin.img}" class="popup-image">
+                        <b>${pin.title}</b><br>
+                        ${pin.description}<br>
+                        <i>${pin.comment}</i><br>
+                        <h1>${pin.rating}</h1>
+                    `)
+                    .addTo(map);
 
-                    <h1>${pin.rating}<h1><br>
-                `);
-                console.log(`${pin.name} Loaded ` +Date());
-                
                 markerGroups[type].addLayer(marker);
+
+                // Store marker for flyTo
+                markerMap[pin.id] = marker;
             });
 
-            //Add all groups to map initially
+            // Add all groups to map
             Object.values(markerGroups).forEach(group => group.addTo(map));
 
-            //Layer control
-            const baseMaps={
-                "OpenStreetMap":openStreetMap,
-                "Satellite": satellite
-            }
+            // Layer control
+            const baseMaps = { "OpenStreetMap": openStreetMap, "Satellite": satellite };
+            const overlayMaps = {};
+            Object.keys(markerGroups).forEach(type => overlayMaps[type] = markerGroups[type]);
 
-            const overlayMaps={};
-
-            //Add marker groups to the map according to layer filter
-            Object.keys(markerGroups).forEach(type=>{
-                overlayMaps[type] = markerGroups[type];
-            });
-            
-            //Add all elements into the map
-            L.control.layers(baseMaps,overlayMaps,{collapsed:false}).addTo(map);
-
+            L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
         })
-        .catch(err => console.error('Error loading JSON', err));
+        .catch(err => console.error("Error loading JSON:", err));
 }
-document.addEventListener("DOMContentLoaded",()=>{
-    initMap('cr-list.json');
-;});
 
-function renderCards(crDataUrl,containerId){
+// Render CR cards
+function renderCards(crDataUrl, containerId) {
     fetch(crDataUrl)
         .then(response => response.json())
         .then(data => {
             const container = document.getElementById(containerId);
             container.innerHTML = "";
 
-            data.forEach(cr =>{
+            data.forEach(cr => {
                 const cardHTML = `
-                    <div class="card" style="margin-top:10px;">
+                    <div class="card mb-2" data-crid="${cr.id}">
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-4">
-                                    <img src="${cr.img}" class="card-img-top" alt="...">
+                                    <img src="${cr.img}" class="card-img-top" alt="${cr.title}">
                                 </div>
                                 <div class="col-8">
                                     <h5 class="card-title">${cr.title}</h5>
                                     <p class="card-text">${cr.rating}</p>
                                     <p class="card-text">${cr.description}</p>
-                                    
-                                    <a href="#" class="btn btn-primary">Go somewhere</a>
                                 </div>
                             </div>
                         </div>
                     </div>
                 `;
                 container.innerHTML += cardHTML;
+            });
 
+            // Add click event to fly to marker
+            container.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const crID = card.getAttribute('data-crid');
+                    const marker = markerMap[crID];
+                    if(marker){
+                        map.flyTo(marker.getLatLng(), 19, { duration: .5 });
+                        marker.openPopup();
+                    }
+                });
             });
         })
-        .catch(error => console.error("Error Loading JSON: ", error));
+        .catch(error => console.error("Error loading JSON:", error));
 }
 
-renderCards('cr-list.json','crCardList');
+// Initialize on DOM ready
+document.addEventListener("DOMContentLoaded", () => {
+    initMap('cr-list.json');
+    renderCards('cr-list.json','crCardList');
+});
+
 
 </script>
 </html>
