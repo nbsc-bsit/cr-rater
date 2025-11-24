@@ -14,6 +14,11 @@
      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
      crossorigin=""></script>
 
+    <!-- Bootstrap-->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
+
     <style>
         #map { height: 800px; }
         .popup-image {
@@ -26,7 +31,16 @@
 </head>
 <body>
     <h1>Campus Map</h1>
-     <div id="map"></div>
+    <div class="row">
+        <div class="col-4">
+            <h2 >CR List</h2>
+            <div id="crCardList" style="margin-left: 1rem;"></div>
+        </div>
+        <div class="col-8">
+            <div id="map"></div>
+        </div>
+    </div>
+     
 </body>
 <script>
 
@@ -116,6 +130,41 @@ function initMap(mapDataUrl){
 document.addEventListener("DOMContentLoaded",()=>{
     initMap('cr-list.json');
 ;});
+
+function renderCards(crDataUrl,containerId){
+    fetch(crDataUrl)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById(containerId);
+            container.innerHTML = "";
+
+            data.forEach(cr =>{
+                const cardHTML = `
+                    <div class="card" style="margin-top:10px;">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-4">
+                                    <img src="${cr.img}" class="card-img-top" alt="...">
+                                </div>
+                                <div class="col-8">
+                                    <h5 class="card-title">${cr.title}</h5>
+                                    <p class="card-text">${cr.rating}</p>
+                                    <p class="card-text">${cr.description}</p>
+                                    
+                                    <a href="#" class="btn btn-primary">Go somewhere</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+
+            });
+        })
+        .catch(error => console.error("Error Loading JSON: ", error));
+}
+
+renderCards('cr-list.json','crCardList');
 
 </script>
 </html>
